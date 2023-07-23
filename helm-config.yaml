@@ -7,7 +7,7 @@ verbosityLevel: 3
 # Specify which application gateway the ingress controller will manage
 #
 appgw:
-    subscriptionId: f88eb5a5-7f93-4769-a818-a0b6a24fc822
+    subscriptionId: xxxx-xxxxx-xxxxx-xxxx-xxxxx
     resourceGroup: agic-helm-rg
     name: appgw-helm
     usePrivateIP: false
@@ -33,7 +33,7 @@ appgw:
 # - Option 1: AAD-Pod-Identity (https://github.com/Azure/aad-pod-identity)
 armAuth:
     type: workloadIdentity
-    identityClientID: b50d268c-78bc-4ab4-a819-50d8bf9fbffd
+    identityClientID: xxxx-xxxxx-xxxxx-xxxx-xxxxx
 
 ## Alternatively you can use Service Principal credentials
 # armAuth:
