@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-url-path-based-routing
+spec:
+  ingressClassName: azure-application-gateway
+  rules:
+  - host: mysite.biswajitsamal.xyz
+    http:
+      paths:
+      - path: /images
+        backend:
+          service:
+            name: images-svc
+            port:
+              number: 80
+        pathType: Exact
+  - host: mysite.biswajitsamal.xyz
+    http:
+      paths:
+      - path: /videos
+        backend:
+          service:
+            name: videos-svc
+            port:
+              number: 80
+        pathType: Exact

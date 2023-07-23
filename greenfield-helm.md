@@ -23,7 +23,7 @@ az network vnet subnet create --resource-group "${RESOURCE_GROUP}" --vnet-name "
 
 export AKS_SUBNET_ID="$(az network vnet subnet show --resource-group "${RESOURCE_GROUP}" --vnet-name "${VNET_NAME}" --name "${AKS_SUBNET_NAME}" --query id --output tsv)"
 
-az aks create -g "${RESOURCE_GROUP}" -n "${AKS_NAME}" --node-count 2 --enable-oidc-issuer --enable-workload-identity --network-plugin azure --vnet-subnet-id "${AKS_SUBNET_ID}"
+az aks create -g "${RESOURCE_GROUP}" -n "${AKS_NAME}" -s "Standard_B2ms" --node-count 2 --enable-oidc-issuer --enable-workload-identity --network-plugin azure --vnet-subnet-id "${AKS_SUBNET_ID}"
 
 az network public-ip create -g "${RESOURCE_GROUP}" -n "${APPLICATION_GATEWAY_PIP_NAME}" --allocation-method Static --sku Standard --tier Regional
 
@@ -38,9 +38,9 @@ export AKS_OIDC_ISSUER="$(az aks show -n "${AKS_NAME}" -g "${RESOURCE_GROUP}" --
 ```
 
 # 4.	Created federated identity credential. 
-Note the name of the service account that gets created after the helm installation is “ingress-azure” and the following command assumes it will be deployed in “default” namespace. Please change the namespace name in the previous command if you deploy the AGIC related Kubernetes resources in other namespaces.
+Note the name of the service account that gets created after the helm installation is “ingress-azure” and the following command assumes it will be deployed in “default” namespace. Please change the namespace name (we are using appgw namespace to intstall AGIC) if you deploy the AGIC related Kubernetes resources in other namespaces.
 ```
-az identity federated-credential create --resource-group ${RESOURCE_GROUP} --name ${FEDERATED_IDENTITY_CREDENTIAL_NAME} --identity-name ${USER_ASSIGNED_IDENTITY_NAME} --issuer ${AKS_OIDC_ISSUER} --subject system:serviceaccount:default:ingress-azure
+az identity federated-credential create --resource-group ${RESOURCE_GROUP} --name ${FEDERATED_IDENTITY_CREDENTIAL_NAME} --identity-name ${USER_ASSIGNED_IDENTITY_NAME} --issuer ${AKS_OIDC_ISSUER} --subject system:serviceaccount:appgw:ingress-azure
 ```
 
 # 5.	Obtain the ClientID of the identity created before that is needed for the next step.
@@ -51,11 +51,16 @@ export IDENTITY_CLIENT_ID="$(az identity show --resource-group "${RESOURCE_GROUP
 # 6.	Export the Application Gateway resource ID.
 ```
 export APP_GW_ID="$(az network application-gateway show --name "${APPLICATION_GATEWAY_NAME}" --resource-group "${RESOURCE_GROUP}" --query 'id' --output tsv)"
+export APP_VNET_ID="$(az network vnet show --name "${VNET_NAME}" --resource-group "${RESOURCE_GROUP}" --query 'id' --output tsv)"
 ```
 
 # 7.	Add Contributor role for the identity over the Application Gateway.
 ```
 az role assignment create --assignee "${IDENTITY_CLIENT_ID}" --scope "${APP_GW_ID}" --role Contributor
+```
+Note: Sometime AGIC pod throws error while applying or deleting ingress. In that case, assign Network Contributor role for the identity over the VNet. Since the application gateway resource is deployed inside a virtual network, azure also perform a check to verify the permission on the provided virtual network resource.
+```
+az role assignment create --assignee "${IDENTITY_CLIENT_ID}" --scope "${APP_VNET_ID}" --role "Contributor"
 ```
 
 # 8. Download helm-config.yaml, which will configure AGIC.
@@ -67,7 +72,7 @@ wget https://raw.githubusercontent.com/Azure/application-gateway-kubernetes-ingr
 ```
 armAuth:
     type: workloadIdentity
-    identityClientID: <IDENTITY_CLIENT_ID>
+    identityClientID: b50d268c-78bc-4ab4-a819-50d8bf9fbffd
 ```
 
 # 10. Get the AKS cluster credentials.
@@ -86,7 +91,10 @@ helm search repo -l application-gateway-kubernetes-ingress
 
 # 12. Install the helm chart.
 ```
+kubectl create ns appgw
+
 helm install ingress-azure \
+  --namespace appgw \
   -f helm-config.yaml \
   application-gateway-kubernetes-ingress/ingress-azure \
   --version 1.7.1

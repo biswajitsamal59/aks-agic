@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-multi
+spec:
+  ingressClassName: azure-application-gateway
+  rules:
+  - host: biswajitsamal.xyz
+    http:
+      paths:
+      - path: /
+        backend:
+          service:
+            name: nginx-svc
+            port:
+              number: 80
+        pathType: Exact
