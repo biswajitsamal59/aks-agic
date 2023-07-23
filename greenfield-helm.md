@@ -37,7 +37,8 @@ az identity create --name "${USER_ASSIGNED_IDENTITY_NAME}" --resource-group "${R
 export AKS_OIDC_ISSUER="$(az aks show -n "${AKS_NAME}" -g "${RESOURCE_GROUP}" --query "oidcIssuerProfile.issuerUrl" -otsv)"
 ```
 
-# 4.	Created federated identity credential. Note the name of the service account that gets created after the helm installation is “ingress-azure” and the following command assumes it will be deployed in “default” namespace. Please change the namespace name in the previous command if you deploy the AGIC related Kubernetes resources in other namespaces.
+# 4.	Created federated identity credential. 
+Note the name of the service account that gets created after the helm installation is “ingress-azure” and the following command assumes it will be deployed in “default” namespace. Please change the namespace name in the previous command if you deploy the AGIC related Kubernetes resources in other namespaces.
 ```
 az identity federated-credential create --resource-group ${RESOURCE_GROUP} --name ${FEDERATED_IDENTITY_CREDENTIAL_NAME} --identity-name ${USER_ASSIGNED_IDENTITY_NAME} --issuer ${AKS_OIDC_ISSUER} --subject system:serviceaccount:default:ingress-azure
 ```
